@@ -1,4 +1,10 @@
-# <picture><source media="(prefers-color-scheme: dark)" srcset="src/assets/dark%20text%20logo.png"><source media="(prefers-color-scheme: light)" srcset="src/assets/light%20text%20logo.png"><img alt="Neo Genesis" src="src/assets/light%20text%20logo.png" width="512"></picture>
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="src/assets/dark%20text%20logo.png">
+    <source media="(prefers-color-scheme: light)" srcset="src/assets/light%20text%20logo.png">
+    <img alt="Neo Genesis" src="src/assets/light%20text%20logo.png" width="512">
+  </picture>
+</div>
 
 Independent lighting control for the **HyperX Mars** keyboard (`VID 0951`, `PID 16C6`). Neo Genesis communicates directly with the device over HID on Windows; it does not require HyperX Genesis, NGENUITY, a bridge, or any external DLL.
 
