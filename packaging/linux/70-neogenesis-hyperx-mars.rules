@@ -1,0 +1,8 @@
+# HyperX Mars Gaming Keyboard (0951:16c6) — Neo Genesis lighting control
+#
+# The 70- prefix is required, not cosmetic: systemd's 73-seat-late.rules is what
+# turns TAG+="uaccess" into an ACL for the active seat. udev reads rule files in
+# lexical order, so a 99- file would set the tag after 73- already looked for it
+# and the ACL would never be applied — MODE would take effect and access would
+# still be denied.
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="0951", ATTRS{idProduct}=="16c6", MODE="0660", TAG+="uaccess"
