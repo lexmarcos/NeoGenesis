@@ -26,7 +26,7 @@ export function CustomKeyboard({ colors, onKeyClick }: CustomKeyboardProps) {
           width: pct(key.w, KEYMAP_SURFACE.width),
           height: pct(key.h, KEYMAP_SURFACE.height),
           backgroundColor: painted,
-          boxShadow: painted ? `0 0 8px ${painted}` : undefined
+          boxShadow: painted ? `0 0 10px ${painted}, inset 0 1px 0 rgba(255,255,255,.35)` : undefined
         };
         return (
           <button
@@ -35,11 +35,12 @@ export function CustomKeyboard({ colors, onKeyClick }: CustomKeyboardProps) {
             title={`${key.label || `Barra LED ${key.col - 2}`} · (${key.row}, ${key.col})`}
             onClick={() => onKeyClick(key)}
             className={cn(
-              "absolute flex items-center justify-center overflow-hidden border text-[7px] font-medium transition",
-              isBar ? "rounded-full" : "rounded-[4px]",
+              "press absolute flex items-center justify-center overflow-hidden border text-[7px] font-medium",
+              "transition-[background-color,border-color,box-shadow,transform] duration-150 [transition-timing-function:var(--ease-out)]",
+              isBar ? "rounded-full" : "rounded-[5px]",
               painted
-                ? "border-white/40 text-white [text-shadow:0_1px_2px_rgba(0,0,0,.8)]"
-                : "border-white/[0.12] bg-zinc-900 text-zinc-400 hover:border-white/40 hover:bg-zinc-800"
+                ? "border-white/50 text-white [text-shadow:0_1px_2px_rgba(0,0,0,.85)]"
+                : "border-white/[0.09] bg-gradient-to-b from-zinc-800/70 to-zinc-950 text-zinc-400 shadow-[inset_0_1px_0_rgba(255,255,255,.05),inset_0_-2px_5px_rgba(0,0,0,.5)] hover:border-primary/60 hover:text-zinc-200"
             )}
             style={style}
           >
