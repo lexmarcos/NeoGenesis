@@ -1,0 +1,11 @@
+node_modules/
+dist/
+src-tauri/target/
+*.log
+*.py[cod]
+__pycache__/
+.DS_Store
+reverse-lab/
+PROTOCOL.md
+app-icon.svg
+src-tauri/gen/
