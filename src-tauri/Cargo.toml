@@ -4,6 +4,9 @@ version = "0.1.0"
 description = "Independent lighting control for the HyperX Mars keyboard"
 authors = ["Neo Genesis contributors"]
 edition = "2021"
+# Two binaries exist (the app + the `spike` diagnostic CLI), so `cargo run`
+# — which `tauri dev` invokes — needs to know which one is the app.
+default-run = "neo-genesis"
 
 [lib]
 name = "mars_control_lib"
