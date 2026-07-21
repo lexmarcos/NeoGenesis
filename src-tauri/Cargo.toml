@@ -1,0 +1,19 @@
+[package]
+name = "neo-genesis"
+version = "0.1.0"
+description = "Controle comunitário de iluminação para o teclado HyperX Mars"
+authors = ["Neo Genesis contributors"]
+edition = "2021"
+
+[lib]
+name = "mars_control_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+hidapi = { version = "2.6", default-features = false, features = ["windows-native"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
