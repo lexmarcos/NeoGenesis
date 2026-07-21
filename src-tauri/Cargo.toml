@@ -1,7 +1,7 @@
 [package]
 name = "neo-genesis"
 version = "0.1.0"
-description = "Controle comunitário de iluminação para o teclado HyperX Mars"
+description = "Independent lighting control for the HyperX Mars keyboard"
 authors = ["Neo Genesis contributors"]
 edition = "2021"
 
