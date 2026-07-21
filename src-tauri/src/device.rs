@@ -1,5 +1,5 @@
 use std::{
-    ffi::{c_void, CStr, CString},
+    ffi::CString,
     sync::{Mutex, Once},
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -12,6 +12,7 @@ use crate::protocol::{
     build_custom_transaction, build_lighting_reports_with_settings, CustomKeyColor, LightingConfig,
     REPORT_SIZE,
 };
+use crate::transport::Transport;
 
 const VENDOR_ID: u16 = 0x0951;
 const PRODUCT_ID: u16 = 0x16c6;
@@ -24,77 +25,6 @@ const KEEPALIVE_INTERVAL: Duration = Duration::from_millis(1_600);
 
 static DEVICE_IO: Mutex<()> = Mutex::new(());
 static START_KEEPALIVE: Once = Once::new();
-
-const FILE_SHARE_READ: u32 = 0x0000_0001;
-const FILE_SHARE_WRITE: u32 = 0x0000_0002;
-const GENERIC_READ: u32 = 0x8000_0000;
-const GENERIC_WRITE: u32 = 0x4000_0000;
-const OPEN_EXISTING: u32 = 3;
-const INVALID_HANDLE_VALUE: isize = -1;
-
-#[link(name = "kernel32")]
-extern "system" {
-    fn CreateFileA(
-        filename: *const u8,
-        desired_access: u32,
-        share_mode: u32,
-        security_attributes: *const c_void,
-        creation_disposition: u32,
-        flags_and_attributes: u32,
-        template_file: isize,
-    ) -> isize;
-    fn CloseHandle(handle: isize) -> i32;
-}
-
-#[link(name = "hid")]
-extern "system" {
-    fn HidD_SetFeature(device: isize, report_buffer: *mut c_void, report_size: u32) -> u8;
-    fn HidD_GetFeature(device: isize, report_buffer: *mut c_void, report_size: u32) -> u8;
-}
-
-struct FeatureHandle(isize);
-
-impl FeatureHandle {
-    fn open(path: &CStr) -> Result<Self, String> {
-        // Reproduce SonixHidDll exactly: try read/write first, then fall back to
-        // desired_access=0 for protected keyboard collections.
-        let mut handle = unsafe {
-            CreateFileA(
-                path.as_ptr().cast(),
-                GENERIC_READ | GENERIC_WRITE,
-                FILE_SHARE_READ | FILE_SHARE_WRITE,
-                std::ptr::null(),
-                OPEN_EXISTING,
-                0,
-                0,
-            )
-        };
-        if handle == INVALID_HANDLE_VALUE {
-            handle = unsafe {
-                CreateFileA(
-                    path.as_ptr().cast(),
-                    0,
-                    FILE_SHARE_READ | FILE_SHARE_WRITE,
-                    std::ptr::null(),
-                    OPEN_EXISTING,
-                    0,
-                    0,
-                )
-            };
-        }
-        if handle == INVALID_HANDLE_VALUE {
-            Err(std::io::Error::last_os_error().to_string())
-        } else {
-            Ok(Self(handle))
-        }
-    }
-}
-
-impl Drop for FeatureHandle {
-    fn drop(&mut self) {
-        unsafe { CloseHandle(self.0) };
-    }
-}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -153,34 +83,10 @@ fn select_protocol_path(api: &HidApi) -> Result<(CString, u16, i32, String), Str
         .ok_or_else(|| "coleção HID MI_00 do HyperX Mars 0951:16C6 não encontrada".into())
 }
 
-fn send_payload(path: &CStr, payload: &[u8; REPORT_SIZE]) -> Result<(), String> {
-    let mut framed = [0u8; REPORT_SIZE + 1];
-    framed[1..].copy_from_slice(payload);
-    let device = FeatureHandle::open(path)?;
-    let sent =
-        unsafe { HidD_SetFeature(device.0, framed.as_mut_ptr().cast(), framed.len() as u32) };
-    if sent == 0 {
-        return Err(std::io::Error::last_os_error().to_string());
-    }
-    drop(device);
-    Ok(())
-}
-
-fn receive_payload(path: &CStr) -> Result<Vec<u8>, String> {
-    let mut framed = [0u8; REPORT_SIZE + 1];
-    let device = FeatureHandle::open(path)?;
-    let received =
-        unsafe { HidD_GetFeature(device.0, framed.as_mut_ptr().cast(), framed.len() as u32) };
-    if received == 0 {
-        return Err("o teclado não respondeu ao relatório HID".into());
-    }
-    Ok(framed[1..].to_vec())
-}
-
-fn transact(path: &CStr, payload: &[u8; REPORT_SIZE]) -> Result<Vec<u8>, String> {
-    send_payload(path, payload)?;
+fn transact(transport: &Transport, payload: &[u8; REPORT_SIZE]) -> Result<Vec<u8>, String> {
+    transport.send(payload)?;
     thread::sleep(RESPONSE_DELAY);
-    receive_payload(path)
+    transport.receive()
 }
 
 fn confirmed(response: &[u8], command: u8) -> bool {
@@ -190,13 +96,13 @@ fn confirmed(response: &[u8], command: u8) -> bool {
 }
 
 fn transact_confirmed(
-    path: &CStr,
+    transport: &Transport,
     payload: &[u8; REPORT_SIZE],
     command: u8,
 ) -> Result<Vec<u8>, String> {
     let mut last = Vec::new();
     for _ in 0..3 {
-        last = transact(path, payload)?;
+        last = transact(transport, payload)?;
         if confirmed(&last, command) {
             return Ok(last);
         }
@@ -231,12 +137,13 @@ fn pseudo_random_report() -> [u8; REPORT_SIZE] {
     report
 }
 
-fn unlock_writes(path: &CStr) -> Result<(), String> {
-    transact_confirmed(path, &query(0xab), 0xab)
+fn unlock_writes(transport: &Transport) -> Result<(), String> {
+    transact_confirmed(transport, &query(0xab), 0xab)
         .map_err(|error| format!("handshake 04 AB: {error}"))?;
-    send_payload(path, &pseudo_random_report())
+    transport
+        .send(&pseudo_random_report())
         .map_err(|error| format!("resposta aleatória AB: {error}"))?;
-    transact_confirmed(path, &query(0x02), 0x02)
+    transact_confirmed(transport, &query(0x02), 0x02)
         .map_err(|error| format!("o teclado recusou a sessão de gravação: {error}"))?;
     Ok(())
 }
@@ -277,7 +184,10 @@ pub fn start_keepalive() {
                 let Ok((path, _, _, _)) = select_protocol_path(&api) else {
                     continue;
                 };
-                let _ = transact_confirmed(&path, &query(0xe0), 0xe0);
+                let Ok(transport) = Transport::open(&api, &path) else {
+                    continue;
+                };
+                let _ = transact_confirmed(&transport, &query(0xe0), 0xe0);
             })
             .expect("falha ao iniciar o keepalive HID do Mars");
     });
@@ -289,26 +199,27 @@ pub fn apply_with_settings(
 ) -> Result<(), String> {
     let _guard = DEVICE_IO
         .lock()
-        .map_err(|_| "controle HID do Mars ficou indisponÃ­vel".to_string())?;
+        .map_err(|_| "controle HID do Mars ficou indisponível".to_string())?;
     let api = HidApi::new().map_err(|error| error.to_string())?;
     let (path, _, _, _) = select_protocol_path(&api)?;
-    unlock_writes(&path)?;
+    let transport = Transport::open(&api, &path)?;
+    unlock_writes(&transport)?;
     for (index, report) in build_lighting_reports_with_settings(active, settings)
         .into_iter()
         .enumerate()
     {
         if index == 0 {
-            let response = transact_confirmed(&path, &report, 0x0a)
+            let response = transact_confirmed(&transport, &report, 0x0a)
                 .map_err(|error| format!("cabeçalho do perfil 04 0A: {error}"))?;
             debug_assert!(confirmed(&response, 0x0a));
         } else {
-            send_payload(&path, &report).map_err(|error| {
+            transport.send(&report).map_err(|error| {
                 format!("relatório de perfil {index} (0x{:02X}): {error}", report[0])
             })?;
             thread::sleep(PROFILE_REPORT_DELAY);
         }
     }
-    let status = transact_confirmed(&path, &query(0x02), 0x02)
+    let status = transact_confirmed(&transport, &query(0x02), 0x02)
         .map_err(|error| format!("confirmação final 04 02: {error}"))?;
     debug_assert!(confirmed(&status, 0x02));
     Ok(())
@@ -343,11 +254,11 @@ fn custom_step_action(index: usize) -> CustomStepAction {
 // transact_confirmed remains in the preexisting non-Custom paths, including
 // effects, unlock, and keepalive.
 fn transact_once_expecting(
-    path: &CStr,
+    transport: &Transport,
     payload: &[u8; REPORT_SIZE],
     command: u8,
 ) -> Result<Vec<u8>, String> {
-    let response = transact(path, payload)?;
+    let response = transact(transport, payload)?;
     let expected = [0x04, command, 0x00, 0x01];
     if response.len() < 4 || response[..4] != expected {
         return Err(format!(
@@ -369,16 +280,17 @@ pub fn apply_custom(keys: &[CustomKeyColor]) -> Result<(), String> {
         .map_err(|_| "controle HID do Mars ficou indisponível".to_string())?;
     let api = HidApi::new().map_err(|error| error.to_string())?;
     let (path, _, _, _) = select_protocol_path(&api)?;
+    let transport = Transport::open(&api, &path)?;
 
     for (index, payload) in payloads.iter().enumerate() {
         match custom_step_action(index) {
             CustomStepAction::Transact { expected_command } => {
-                transact_once_expecting(&path, payload, expected_command).map_err(|error| {
-                    format!("etapa {index} (consulta 04 {expected_command:02X}): {error}")
-                })?;
+                transact_once_expecting(&transport, payload, expected_command).map_err(
+                    |error| format!("etapa {index} (consulta 04 {expected_command:02X}): {error}"),
+                )?;
             }
             CustomStepAction::Send => {
-                send_payload(&path, payload).map_err(|error| {
+                transport.send(payload).map_err(|error| {
                     format!("payload custom {index} (0x{:02X}): {error}", payload[0])
                 })?;
                 thread::sleep(PROFILE_REPORT_DELAY);

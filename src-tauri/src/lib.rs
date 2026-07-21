@@ -1,5 +1,6 @@
 mod device;
 mod protocol;
+mod transport;
 
 use protocol::{CustomKeyColor, LightingConfig};
 
