@@ -6,6 +6,5 @@ src-tauri/target/
 __pycache__/
 .DS_Store
 reverse-lab/
-PROTOCOL.md
 app-icon.svg
 src-tauri/gen/
