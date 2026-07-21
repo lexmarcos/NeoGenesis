@@ -446,9 +446,9 @@ pub fn build_custom_transaction(
     Ok(payloads)
 }
 
-// Nine groups of 16 custom-lighting entries. Cada entrada usa
-// [prefixo_opaco, R, G, B]. Os prefixos 0x80/0x00 sao preservados
-// da captura e nao indicam validade da posicao.
+// Nine groups of 16 custom-lighting entries. Each entry uses
+// [opaque_prefix, R, G, B]. The 0x80/0x00 prefixes are preserved
+// from the capture and do not indicate whether the position is valid.
 const DEFAULT_CUSTOM_LIGHT_REPORTS: [[u8; REPORT_SIZE]; 9] = [
     repeated_keymap(),
     repeated_keymap(),

@@ -1,56 +1,56 @@
-# Neo Genesis
+# <picture><source media="(prefers-color-scheme: dark)" srcset="src/assets/dark%20text%20logo.png"><source media="(prefers-color-scheme: light)" srcset="src/assets/light%20text%20logo.png"><img alt="Neo Genesis" src="src/assets/light%20text%20logo.png" width="512"></picture>
 
-Controle de iluminação independente para o teclado **HyperX Mars** (`VID 0951`, `PID 16C6`). O Neo Genesis comunica-se diretamente com o dispositivo via HID no Windows; não requer HyperX Genesis, NGENUITY, bridge ou DLL externa.
+Independent lighting control for the **HyperX Mars** keyboard (`VID 0951`, `PID 16C6`). Neo Genesis communicates directly with the device over HID on Windows; it does not require HyperX Genesis, NGENUITY, a bridge, or any external DLL.
 
-## Recursos
+## Features
 
-- efeitos Onda RGB, Loading de cor, Sólida, Ciclo de cores e Batimento;
-- brilho, velocidade, direção e repetição quando suportados pelo firmware;
-- dez perfis locais;
-- pintura personalizada por tecla e pela barra de LEDs;
-- gravação direta na memória do teclado;
-- keepalive para manter o efeito Batimento em movimento.
+- RGB Wave, Color Loading, Solid, Color Cycle, and Heartbeat effects;
+- brightness, speed, direction, and repeat when supported by the firmware;
+- ten local profiles;
+- per-key and LED-bar custom paint;
+- direct write to onboard keyboard memory;
+- keepalive to keep the Heartbeat effect moving.
 
-## Uso
+## Usage
 
-1. Feche outros programas que possam controlar o teclado.
-2. Abra `src-tauri\\target\\release\\neo-genesis.exe`.
-3. Escolha um efeito ou pinte teclas no cartão **Personalizado por tecla**.
-4. Clique em **Aplicar no Mars** ou **Aplicar por tecla**.
+1. Close any other programs that may be controlling the keyboard.
+2. Open `src-tauri\target\release\neo-genesis.exe`.
+3. Choose an effect or paint keys on the **Custom per key** card.
+4. Click **Apply on Mars** or **Apply per key**.
 
-Não desconecte o teclado enquanto uma gravação estiver em andamento. Para o efeito Batimento, mantenha o Neo Genesis aberto ou minimizado, pois o firmware precisa do keepalive do aplicativo.
+Do not disconnect the keyboard while a write is in progress. For the Heartbeat effect, keep Neo Genesis open or minimized — the firmware relies on the app's keepalive.
 
-## Desenvolvimento
+## Development
 
-Pré-requisitos: Node.js, Rust estável, ferramentas C++ do Visual Studio e WebView2 Runtime.
+Prerequisites: Node.js, stable Rust, Visual Studio C++ tools, and the WebView2 Runtime.
 
 ```powershell
 npm install
 npm run tauri dev
 ```
 
-Verificações locais:
+Local checks:
 
 ```powershell
 npm test
 npm run build
-cargo check --manifest-path src-tauri\\Cargo.toml
-cargo test --manifest-path src-tauri\\Cargo.toml
+cargo check --manifest-path src-tauri\Cargo.toml
+cargo test --manifest-path src-tauri\Cargo.toml
 ```
 
-Build de produção:
+Production build:
 
 ```powershell
 npm run tauri build
 ```
 
-O executável é gerado em `src-tauri\\target\\release\\neo-genesis.exe`. O Windows pode exibir um aviso porque o binário não possui assinatura digital. O WebView2 Runtime normalmente já está presente no Windows 10 e 11.
+The executable lands at `src-tauri\target\release\neo-genesis.exe`. Windows may show a warning because the binary is not digitally signed. The WebView2 Runtime is typically already present on Windows 10 and 11.
 
-## Limites conhecidos
+## Known Limitations
 
-- O suporte é específico para o HyperX Mars `0951:16C6`.
-- Apenas a iluminação está implementada; macros, remapeamento e modo jogo não fazem parte do app.
-- As cores do modo personalizado são salvas localmente e não são separadas por perfil.
-- A versão atual é exclusiva para Windows.
+- Support is specific to the HyperX Mars `0951:16C6`.
+- Only lighting is implemented; macros, remapping, and game mode are not part of the app.
+- Custom-mode colors are saved locally and are not separated by profile.
+- The current release is Windows-only.
 
-Este projeto não é afiliado nem endossado pela HyperX.
+This project is not affiliated with or endorsed by HyperX.
