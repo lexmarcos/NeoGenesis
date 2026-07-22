@@ -1,20 +1,15 @@
-import { Activity, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Gauge, Layers3, LoaderCircle, Palette, Play, Save, Sparkles, SunMedium, Waves } from "lucide-react";
-import type { CSSProperties } from "react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Gauge, LoaderCircle, Palette, Play, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { KeyboardPreview } from "@/components/KeyboardPreview";
+import { EffectCard } from "@/components/effects/EffectCard";
+import { EFFECTS } from "@/components/effects/effects";
+import { ChangesRail } from "@/components/feedback/ChangesRail";
 import { cn } from "@/lib/utils";
+import type { ChangeEntry } from "@/lib/changes";
 import type { Direction, Effect, LightingConfig } from "@/lib/types";
-
-export const EFFECTS: { id: Effect; label: string; description: string; icon: typeof Waves }[] = [
-  { id: "wave", label: "Onda RGB", description: "Varredura colorida", icon: Waves },
-  { id: "stack", label: "Loading de cor", description: "Cores em camadas", icon: Layers3 },
-  { id: "static", label: "Sólida", description: "Uma cor constante", icon: SunMedium },
-  { id: "heartbeat", label: "Batimento", description: "Pulso duplo", icon: Activity },
-  { id: "spectrum", label: "Ciclo de cores", description: "Espectro contínuo", icon: Sparkles }
-];
 
 const directions: { id: Direction; icon: typeof ArrowUp; label: string }[] = [
   { id: "up", icon: ArrowUp, label: "Cima" },
@@ -23,10 +18,22 @@ const directions: { id: Direction; icon: typeof ArrowUp; label: string }[] = [
   { id: "down", icon: ArrowDown, label: "Baixo" }
 ];
 
+function Readout({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-md border border-white/[0.08] bg-black/40 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-zinc-400">
+      {children}
+    </span>
+  );
+}
+
 interface AnimationTabProps {
   config: LightingConfig;
+  effectConfigs: Record<Effect, LightingConfig>;
+  changes: ChangeEntry[];
   onSelectEffect: (effect: Effect) => void;
   onUpdate: <K extends keyof LightingConfig>(key: K, value: LightingConfig[K]) => void;
+  onRevertEffect: (effect: Effect) => void;
+  onRevertAll: () => void;
   onSave: () => void;
   onApply: () => void;
   applying: boolean;
@@ -34,66 +41,55 @@ interface AnimationTabProps {
   connected: boolean;
 }
 
-export function AnimationTab({ config, onSelectEffect, onUpdate, onSave, onApply, applying, busy, connected }: AnimationTabProps) {
+export function AnimationTab({ config, effectConfigs, changes, onSelectEffect, onUpdate, onRevertEffect, onRevertAll, onSave, onApply, applying, busy, connected }: AnimationTabProps) {
   const visibleColors = config.effect === "static" ? 1 : config.effect === "heartbeat" ? 2 : config.effect === "spectrum" || config.effect === "wave" ? 0 : 5;
+  const dirty = new Set(changes.map((entry) => entry.effect));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight">Animação</h2>
-          <p className="text-sm text-muted-foreground">Um efeito para todo o teclado, gravado na memória do Mars.</p>
+          <h2 className="font-display text-xl font-semibold tracking-tight">Animação</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">Um efeito para todo o teclado, gravado na memória do Mars.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={onSave}><Save className="mr-2 h-4 w-4" />Salvar</Button>
-          <Button className="min-w-36" onClick={onApply} disabled={busy || !connected} title={!connected ? "Conecte o teclado para aplicar" : undefined}>
+          <Button variant="outline" onClick={onSave} title="Salvar no perfil (Ctrl+S)"><Save className="mr-2 h-4 w-4" />Salvar</Button>
+          <Button className="min-w-36" onClick={onApply} disabled={busy || !connected} title={!connected ? "Conecte o teclado para aplicar" : "Gravar no teclado (Ctrl+Enter)"}>
             {applying ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4 fill-current" />}
             Aplicar no Mars
           </Button>
         </div>
       </div>
 
-      <KeyboardPreview config={config} />
+      <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-6">
+        {/* Left: the device itself, then the effect strip. */}
+        <div className="min-w-0 space-y-5">
+          <KeyboardPreview config={config} />
 
-      <div className="grid grid-cols-[minmax(0,1fr)_340px] gap-6">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Palette className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Efeito de iluminação</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-            {EFFECTS.map((effect, i) => {
-              const Icon = effect.icon;
-              const active = effect.id === config.effect;
-              return (
-                <button
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <Palette className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold">Efeito de iluminação</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-5">
+              {EFFECTS.map((effect, i) => (
+                <EffectCard
                   key={effect.id}
-                  onClick={() => onSelectEffect(effect.id)}
-                  style={{ animationDelay: `${i * 45}ms` } as CSSProperties}
-                  className={cn(
-                    "press group relative animate-fade-in-up overflow-hidden rounded-xl border p-4 text-left",
-                    "transition-[border-color,background-color,box-shadow] duration-200 [transition-timing-function:var(--ease-out)]",
-                    active
-                      ? "border-primary/50 bg-primary/[0.07] shadow-[0_0_30px_-10px_hsl(var(--primary)/.7)]"
-                      : "border-white/[0.07] bg-white/[0.02] hover:border-white/[0.16] hover:bg-white/[0.04]"
-                  )}
-                >
-                  <div className={cn("mb-6 grid h-9 w-9 place-items-center rounded-lg border transition-colors", active ? "border-primary/40 bg-primary/15 text-primary" : "border-white/[0.06] bg-white/[0.03] text-zinc-400")}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div className="text-sm font-medium">{effect.label}</div>
-                  <div className="mt-1 text-[11px] text-zinc-500">{effect.description}</div>
-                  {active && (
-                    <span className="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground shadow-[0_0_12px_-2px_hsl(var(--primary))]">
-                      <Check className="h-3 w-3" />
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                  effect={effect.id}
+                  label={effect.label}
+                  description={effect.description}
+                  colors={effectConfigs[effect.id].colors}
+                  active={effect.id === config.effect}
+                  modified={dirty.has(effect.id)}
+                  staggerIndex={i}
+                  onSelect={onSelectEffect}
+                />
+              ))}
+            </div>
+          </section>
         </div>
 
+        {/* Right rail: parameters, then the pending-changes console. */}
         <div className="space-y-5">
           <Card className="border-white/[0.07] bg-white/[0.02]">
             <CardHeader className="pb-4">
@@ -110,7 +106,7 @@ export function AnimationTab({ config, onSelectEffect, onUpdate, onSave, onApply
                   {config.colors.slice(0, visibleColors).map((color, index) => (
                     <label key={index} className="press group relative aspect-square cursor-pointer overflow-hidden rounded-lg border border-white/10" style={{ backgroundColor: color, boxShadow: `inset 0 -10px 22px rgba(0,0,0,.22), 0 0 14px -4px ${color}` }}>
                       <input type="color" className="absolute inset-0 cursor-pointer opacity-0" value={color} onChange={(event) => { const next = [...config.colors]; next[index] = event.target.value; onUpdate("colors", next); }} />
-                      <span className="absolute inset-x-1 bottom-1 truncate text-center font-mono text-[7px] uppercase text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,.8)]">{color.slice(1)}</span>
+                      <span className="absolute inset-x-1 bottom-1 truncate text-center font-mono text-[8px] uppercase text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,.8)]">{color.slice(1)}</span>
                     </label>
                   ))}
                 </div>
@@ -122,23 +118,23 @@ export function AnimationTab({ config, onSelectEffect, onUpdate, onSave, onApply
             <CardHeader className="pb-5">
               <CardTitle className="flex items-center gap-2 text-sm"><Gauge className="h-4 w-4 text-primary" />Ajustes</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-7">
+            <CardContent className="space-y-6">
               <div>
-                <div className="mb-3 flex justify-between text-xs"><span className="text-zinc-400">Brilho</span><span className="font-mono text-zinc-500">{config.brightness}/5</span></div>
-                <Slider min={1} max={5} step={1} value={[config.brightness]} onValueChange={([value]) => onUpdate("brightness", value)} />
+                <div className="mb-2 flex items-center justify-between text-xs"><span className="text-zinc-400">Brilho</span><Readout>{config.brightness} / 5</Readout></div>
+                <Slider ticks min={1} max={5} step={1} value={[config.brightness]} onValueChange={([value]) => onUpdate("brightness", value)} />
               </div>
               {config.effect !== "static" && (
                 <div>
-                  <div className="mb-3 flex justify-between text-xs"><span className="text-zinc-400">Velocidade</span><span className="font-mono text-zinc-500">{config.speed}/5</span></div>
-                  <Slider min={1} max={5} step={1} value={[config.speed]} onValueChange={([value]) => onUpdate("speed", value)} />
+                  <div className="mb-2 flex items-center justify-between text-xs"><span className="text-zinc-400">Velocidade</span><Readout>{config.speed} / 5</Readout></div>
+                  <Slider ticks min={1} max={5} step={1} value={[config.speed]} onValueChange={([value]) => onUpdate("speed", value)} />
                 </div>
               )}
               {(config.effect === "wave" || config.effect === "stack") && (
                 <div>
-                  <div className="mb-3 text-xs text-zinc-400">Direção</div>
+                  <div className="mb-2 text-xs text-zinc-400">Direção</div>
                   <div className="grid grid-cols-4 gap-2">
                     {directions.map(({ id, icon: Icon, label }) => (
-                      <button key={id} title={label} onClick={() => onUpdate("direction", id)} className={cn("press grid h-9 place-items-center rounded-md border transition-colors", config.direction === id ? "border-primary/50 bg-primary/10 text-primary" : "border-white/[0.08] text-zinc-500 hover:text-zinc-300")}>
+                      <button key={id} title={label} onClick={() => onUpdate("direction", id)} className={cn("press grid h-9 place-items-center rounded-md border transition-colors", config.direction === id ? "border-primary/50 bg-primary/10 text-primary shadow-[0_0_14px_-4px_hsl(var(--primary))]" : "border-white/[0.08] text-zinc-500 hover:text-zinc-300")}>
                         <Icon className="h-4 w-4" />
                       </button>
                     ))}
@@ -156,6 +152,8 @@ export function AnimationTab({ config, onSelectEffect, onUpdate, onSave, onApply
               )}
             </CardContent>
           </Card>
+
+          <ChangesRail entries={changes} onRevertEffect={onRevertEffect} onRevertAll={onRevertAll} />
         </div>
       </div>
     </div>
