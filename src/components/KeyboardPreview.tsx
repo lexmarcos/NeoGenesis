@@ -79,12 +79,12 @@ export function KeyboardPreview({ config }: { config: LightingConfig }) {
       ? (key.y + key.h / 2) / KEY_AREA_BOTTOM
       : (key.x + key.w / 2) / KEYMAP_SURFACE.width;
 
+  // Everything goes in the one `animation` shorthand — mixing it with
+  // `animationDirection` longhand makes React drop updates between renders.
   const travelStyle = (key: KeyDecorator): CSSProperties =>
     traveling
       ? {
-          animation: `${config.effect === "stack" ? "key-stack" : "key-travel"} ${fx.sweep}s linear infinite`,
-          animationDelay: `${-axisFraction(key) * fx.sweep}s`,
-          animationDirection: reverse ? "reverse" : "normal"
+          animation: `${config.effect === "stack" ? "key-stack" : "key-travel"} ${fx.sweep}s linear ${-axisFraction(key) * fx.sweep}s infinite ${reverse ? "reverse" : "normal"}`
         }
       : {};
 
@@ -98,19 +98,7 @@ export function KeyboardPreview({ config }: { config: LightingConfig }) {
 
   let segment = 0;
   return (
-    <KeyboardChassis
-      breathe
-      glow={glow}
-      title="HyperX Mars"
-      subtitle="Pré-visualização ao vivo"
-      right={
-        <div className="flex items-center gap-1.5">
-          {(isSpectrum ? ["#ff2d55", "#ffd60a", "#34d399", "#22d3ee", "#6366f1"] : colors.slice(0, 5)).map((color, i) => (
-            <span key={`${color}-${i}`} className="h-2 w-2 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 10px ${color}` }} />
-          ))}
-        </div>
-      }
-    >
+    <KeyboardChassis breathe glow={glow}>
       <div
         className="relative w-full select-none"
         style={{
