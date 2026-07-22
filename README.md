@@ -14,6 +14,9 @@ Independent lighting control for the **HyperX Mars** keyboard (`VID 0951`, `PID 
 - brightness, speed, direction, and repeat when supported by the firmware;
 - ten local profiles;
 - per-key and LED-bar custom paint;
+- live change tracking — every edit shows as a before → after diff with one-click revert, dirty badges on effects and profiles, and a paint diff (+ added / − removed / ~ recolored) since the last apply;
+- an event console with timestamped history of device checks, saves, and applies;
+- desktop shortcuts: `Ctrl+S` saves the profile, `Ctrl+Enter` writes to the keyboard;
 - direct write to onboard keyboard memory;
 - keepalive to keep the Heartbeat effect moving.
 
