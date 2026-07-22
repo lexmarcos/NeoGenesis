@@ -9,7 +9,3 @@ export const EFFECTS: { id: Effect; label: string; description: string; icon: ty
   { id: "heartbeat", label: "Batimento", description: "Pulso duplo", icon: Activity },
   { id: "spectrum", label: "Ciclo de cores", description: "Espectro contínuo", icon: Sparkles }
 ];
-
-export const EFFECT_LABELS: Record<Effect, string> = Object.fromEntries(
-  EFFECTS.map((effect) => [effect.id, effect.label])
-) as Record<Effect, string>;
