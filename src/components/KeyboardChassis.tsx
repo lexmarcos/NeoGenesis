@@ -14,10 +14,11 @@ interface KeyboardChassisProps {
 }
 
 /**
- * The signature surface of the app: a dark keyboard chassis with a hairline
- * top highlight, machined bezel, and an RGB underglow that picks up whatever
- * colors are currently in play. Shared by the effect preview and the per-key
- * painter so both read as the same physical device.
+ * The signature surface of the app: the Mars rendered as hardware — brushed
+ * top plate, machined bezel, hairline highlights, and an RGB underglow that
+ * sits in normal flow beneath the board so it never smears over the content
+ * below it. Shared by the effect preview and the per-key painter so both
+ * read as the same physical device.
  */
 export function KeyboardChassis({ glow, title, subtitle, right, children, className, breathe }: KeyboardChassisProps) {
   const stops = glow.length ? glow : ["#ff164d"];
@@ -27,29 +28,44 @@ export function KeyboardChassis({ glow, title, subtitle, right, children, classN
 
   return (
     <div className={cn("relative", className)}>
-      {/* Ambient underglow cast onto the desk beneath the board. */}
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute inset-x-8 -bottom-6 h-24 rounded-[50%] blur-2xl opacity-60",
-          breathe && "animate-underglow"
-        )}
-        style={{ background: underglow }}
-      />
-      <div className="relative overflow-hidden rounded-[20px] border border-white/10 bg-gradient-to-b from-[#101014] to-[#08080b] p-4 shadow-panel">
+      <div className="relative overflow-hidden rounded-[20px] border border-white/10 bg-gradient-to-b from-[#14141b] to-[#09090d] p-4 shadow-panel">
+        {/* Brushed top plate — the aluminum deck of the Mars. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.55]"
+          style={{
+            background:
+              "repeating-linear-gradient(90deg, rgba(255,255,255,.014) 0 1px, transparent 1px 3px), repeating-linear-gradient(0deg, rgba(255,255,255,.01) 0 1px, transparent 1px 2px)"
+          }}
+        />
         {/* Top hairline catches the light. */}
         <div className="absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-        <div className="mb-4 flex items-end justify-between px-1">
+        <div className="relative mb-4 flex items-end justify-between px-1">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.34em] text-zinc-500">{title}</div>
+            <div className="font-display text-[10px] font-semibold uppercase tracking-[0.34em] text-zinc-500">{title}</div>
             <div className="mt-1 text-xs text-zinc-400">{subtitle}</div>
           </div>
           {right}
         </div>
-        <div className="relative rounded-xl border border-white/[0.05] bg-black/40 p-3 shadow-[inset_0_2px_14px_rgba(0,0,0,.6)]">
+        <div className="relative rounded-xl border border-white/[0.05] bg-black/50 p-3 shadow-[inset_0_2px_14px_rgba(0,0,0,.65)]">
           {children}
         </div>
       </div>
+
+      {/* Ambient underglow cast onto the desk. Rendered in flow, directly
+          beneath the chassis, so it can never bleed over sibling sections. */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none mx-14 -mt-1.5 h-6 rounded-[50%] blur-2xl",
+          breathe ? "animate-underglow" : "opacity-70"
+        )}
+        style={{
+          background: underglow,
+          maskImage: "linear-gradient(90deg, transparent, black 18%, black 82%, transparent)",
+          WebkitMaskImage: "linear-gradient(90deg, transparent, black 18%, black 82%, transparent)"
+        }}
+      />
     </div>
   );
 }

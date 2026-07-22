@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { KEY_DECORATORS, KEYMAP_SURFACE, keyIndexOf, type KeyDecorator } from "@/lib/keymap";
+import { legendOf } from "@/lib/legends";
 import { cn } from "@/lib/utils";
 
 interface CustomKeyboardProps {
@@ -44,7 +45,7 @@ export function CustomKeyboard({ colors, onKeyClick }: CustomKeyboardProps) {
             )}
             style={style}
           >
-            {!isBar && <span className="truncate px-0.5">{key.label}</span>}
+            {!isBar && <span className="truncate px-0.5">{legendOf(key.label)}</span>}
           </button>
         );
       })}
