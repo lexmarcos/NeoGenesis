@@ -74,6 +74,26 @@
   .press:active { transform: scale(0.97); }
 }
 
+/*
+ * The wave/stack motion lives in the key colors themselves, not in an
+ * overlay: each key pulses with a delay derived from its position along the
+ * sweep axis, so a brightness front travels across the board. Declared here
+ * (not in the Tailwind theme) because the animation is applied inline with
+ * per-key delays.
+ */
+@keyframes key-travel {
+  0%, 100% { opacity: 0.5; }
+  18% { opacity: 1; }
+  36% { opacity: 0.5; }
+}
+
+/* Color loading: rows light up in sequence, hold, then reset together. */
+@keyframes key-stack {
+  0% { opacity: 0.22; }
+  22%, 86% { opacity: 1; }
+  100% { opacity: 0.22; }
+}
+
 /* Reduced motion: keep opacity/color cues, drop movement and looping fx. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

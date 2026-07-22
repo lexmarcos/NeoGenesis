@@ -21,7 +21,9 @@ export default {
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" }
       },
       fontFamily: {
-        mono: ["ui-monospace", "\"JetBrains Mono\"", "\"SFMono-Regular\"", "Menlo", "Consolas", "monospace"]
+        display: ["\"Space Grotesk Variable\"", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "\"Segoe UI\"", "sans-serif"],
+        mono: ["\"JetBrains Mono\"", "ui-monospace", "\"SFMono-Regular\"", "Menlo", "Consolas", "monospace"]
       },
       borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
       boxShadow: {
@@ -30,13 +32,12 @@ export default {
       },
       keyframes: {
         "fade-in": { from: { opacity: "0" }, to: { opacity: "1" } },
-        "fade-in-up": { from: { opacity: "0", transform: "translateY(10px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        "fade-in-up": { from: { opacity: "0", transform: "translateY(8px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         "scale-in": { from: { opacity: "0", transform: "scale(0.96)" }, to: { opacity: "1", transform: "scale(1)" } },
         "spectrum-pan": { from: { backgroundPosition: "0% 50%" }, to: { backgroundPosition: "200% 50%" } },
         hue: { from: { filter: "hue-rotate(0deg)" }, to: { filter: "hue-rotate(360deg)" } },
-        sweep: { "0%": { transform: "translateX(-140%)" }, "100%": { transform: "translateX(140%)" } },
         heartbeat: { "0%,42%,100%": { opacity: ".5" }, "10%,30%": { opacity: "1" }, "20%": { opacity: ".68" } },
-        underglow: { "0%,100%": { opacity: ".5" }, "50%": { opacity: ".85" } },
+        underglow: { "0%,100%": { opacity: ".45" }, "50%": { opacity: ".8" } },
         pulseSoft: { "0%, 100%": { opacity: "0.6" }, "50%": { opacity: "1" } }
       },
       animation: {
@@ -45,7 +46,6 @@ export default {
         "scale-in": "scale-in .35s var(--ease-out) both",
         "spectrum-pan": "spectrum-pan 7s linear infinite",
         hue: "hue var(--fx-duration, 6s) linear infinite",
-        sweep: "sweep var(--fx-duration, 3s) var(--ease-in-out) infinite",
         heartbeat: "heartbeat var(--fx-duration, 1.4s) ease-in-out infinite",
         underglow: "underglow 5s ease-in-out infinite",
         "pulse-soft": "pulseSoft 2.4s ease-in-out infinite"
