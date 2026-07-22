@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Grid3x3, Waves } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sidebar } from "@/components/Sidebar";
+import { Eraser, LoaderCircle, Play, Save } from "lucide-react";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { TopBar } from "@/components/TopBar";
+import { ProfileSelect } from "@/components/ProfileSelect";
 import { AnimationTab } from "@/components/AnimationTab";
 import { PerKeyTab } from "@/components/PerKeyTab";
 import { StatusBar } from "@/components/feedback/StatusBar";
@@ -164,17 +166,6 @@ export default function App() {
     log(`${profile.name} carregado`);
   };
 
-  const revertEffect = useCallback((effect: Effect) => {
-    setEffectConfigs((current) => ({ ...current, [effect]: { ...selected.effects[effect], colors: [...selected.effects[effect].colors] } }));
-    log("Alterações do efeito revertidas");
-  }, [selected, log]);
-
-  const revertAll = useCallback(() => {
-    setEffectConfigs(cloneEffectConfigs(selected.effects));
-    setActiveEffect(selected.activeEffect);
-    log("Todas as alterações foram revertidas");
-  }, [selected, log]);
-
   const saveProfile = useCallback(() => {
     setProfiles((current) => current.map((profile) => profile.id === activeProfile ? {
       ...profile,
@@ -268,79 +259,78 @@ export default function App() {
 
   const paintedCount = Object.keys(customColors).length;
 
+  const applyTitle = !device.connected ? "Conecte o teclado para aplicar" : "Gravar no teclado (Ctrl+Enter)";
+
   return (
-    <main className="h-screen overflow-hidden bg-background text-foreground">
+    <main className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_78%_-4%,hsl(var(--primary)/.10),transparent_36%),radial-gradient(circle_at_16%_104%,rgba(103,38,255,.08),transparent_38%)]" />
-      <div className="relative mx-auto grid h-full max-w-[1600px] grid-cols-[264px_1fr]">
-        <Sidebar
-          device={device}
-          checking={checking}
-          onRefresh={() => void checkDevice()}
-          profiles={profiles}
-          activeProfile={activeProfile}
-          activeDirty={changes.length > 0}
-          onSelectProfile={selectProfile}
-        />
 
-        <section className="flex min-w-0 flex-col">
-          <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)} className="flex min-h-0 flex-1 flex-col">
-            <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-white/[0.06] px-8">
-              <TabsList>
-                <TabsTrigger value="animacao"><Waves className="h-4 w-4" />Animação</TabsTrigger>
-                <TabsTrigger value="porTecla"><Grid3x3 className="h-4 w-4" />Por tecla</TabsTrigger>
-              </TabsList>
-              <div className="flex min-w-0 items-center gap-3">
-                {changes.length > 0 && (
-                  <span className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 animate-fade-in">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                    <span className="text-[10px] font-semibold text-amber-300">{changes.length} {changes.length === 1 ? "alteração não salva" : "alterações não salvas"}</span>
-                  </span>
-                )}
-                <span className="font-mono text-[11px] text-zinc-600">{selected.name}</span>
-              </div>
-            </header>
+      <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)} className="relative flex min-h-0 flex-1 flex-col">
+        <TopBar>
+          {/* Per-key painting is not stored in a profile, so the profile
+              picker only belongs to the animation workspace. */}
+          {tab === "animacao" ? (
+            <>
+              <ProfileSelect
+                profiles={profiles}
+                activeProfile={activeProfile}
+                activeDirty={changes.length > 0}
+                onSelectProfile={selectProfile}
+              />
+              <Button variant="outline" size="sm" onClick={saveProfile} title="Salvar no perfil (Ctrl+S)">
+                <Save className="mr-2 h-3.5 w-3.5" />Salvar
+              </Button>
+              <Button size="sm" className="min-w-[132px]" onClick={() => void apply()} disabled={busy || !device.connected} title={applyTitle}>
+                {applying ? <LoaderCircle className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Play className="mr-2 h-3.5 w-3.5 fill-current" />}
+                Aplicar no Mars
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" onClick={() => { setCustomColors({}); setCustomError(null); }} disabled={paintedCount === 0}>
+                <Eraser className="mr-2 h-3.5 w-3.5" />Limpar
+              </Button>
+              <Button
+                size="sm"
+                className="min-w-[132px]"
+                onClick={() => void applyCustom()}
+                disabled={busy || !device.connected || paintedCount === 0}
+                title={!device.connected ? "Conecte o teclado para aplicar" : paintedCount === 0 ? "Pinte ao menos uma tecla" : applyTitle}
+              >
+                {applyingCustom ? <LoaderCircle className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Play className="mr-2 h-3.5 w-3.5 fill-current" />}
+                Aplicar no Mars
+              </Button>
+            </>
+          )}
+        </TopBar>
 
-            <div className="min-h-0 flex-1 overflow-auto p-6 xl:px-8">
-              <div className="mx-auto max-w-[1240px]">
-                <TabsContent value="animacao">
-                  <AnimationTab
-                    config={config}
-                    effectConfigs={effectConfigs}
-                    changes={changes}
-                    onSelectEffect={selectEffect}
-                    onUpdate={update}
-                    onRevertEffect={revertEffect}
-                    onRevertAll={revertAll}
-                    onSave={saveProfile}
-                    onApply={() => void apply()}
-                    applying={applying}
-                    busy={busy}
-                    connected={device.connected}
-                  />
-                </TabsContent>
-                <TabsContent value="porTecla">
-                  <PerKeyTab
-                    colors={customColors}
-                    brush={customPaint}
-                    onBrush={(color) => { setCustomPaint(color); setCustomError(null); }}
-                    onKeyClick={paintKey}
-                    onClear={() => { setCustomColors({}); setCustomError(null); }}
-                    onApply={() => void applyCustom()}
-                    applyingCustom={applyingCustom}
-                    busy={busy}
-                    connected={device.connected}
-                    paintedCount={paintedCount}
-                    paintDiff={paintDiff}
-                    error={customError}
-                  />
-                </TabsContent>
-              </div>
-            </div>
-          </Tabs>
+        <div className="min-h-0 flex-1 overflow-auto px-6 py-5">
+          <div className="mx-auto max-w-[1080px]">
+            <TabsContent value="animacao">
+              <AnimationTab
+                config={config}
+                effectConfigs={effectConfigs}
+                changes={changes}
+                onSelectEffect={selectEffect}
+                onUpdate={update}
+              />
+            </TabsContent>
+            <TabsContent value="porTecla">
+              <PerKeyTab
+                colors={customColors}
+                brush={customPaint}
+                onBrush={(color) => { setCustomPaint(color); setCustomError(null); }}
+                onKeyClick={paintKey}
+                paintedCount={paintedCount}
+                paintDiff={paintDiff}
+                error={customError}
+              />
+            </TabsContent>
+          </div>
+        </div>
+      </Tabs>
 
-          <StatusBar entries={entries} connected={device.connected} />
-        </section>
-      </div>
+      <StatusBar entries={entries} device={device} checking={checking} onRefresh={() => void checkDevice()} />
     </main>
   );
 }
